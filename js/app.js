@@ -1,28 +1,21 @@
-/**
- * Japan Safe & Weather Insights - Core Application Controller
- *
- * Coordinates cross-view routing, telemetry polling lifecycles, modal dispatchers,
- * and Leaflet / SVG chart synchronization.
- *
- * Senior Engineering Architecture Notes:
- * - DOM reflow prevention: Updates to high-frequency lists (seismic feed, search results)
- *   are batched using DocumentFragment to ensure zero layout trashing.
- * - Leaflet container lifecycle: Map sizing is recomputed via invalidateSize() upon view
- *   transition to prevent grey tile artifacts during CSS display toggles.
- * - Upstream resilience: Polling loops utilize exponential backoff and timeout abort controllers
- *   to avoid piling up hanging requests when users have intermittent connectivity.
- */
 
 function bootWhenReady(fn) {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fn);
+    document.addEventListener('DOMContentLoaded', () => {
+      fn();
+      if (typeof MapEngine !== 'undefined' && MapEngine.invalidateSize) {
+        MapEngine.invalidateSize();
+      }
+    });
   } else {
     fn();
+    if (typeof MapEngine !== 'undefined' && MapEngine.invalidateSize) {
+      setTimeout(() => MapEngine.invalidateSize(), 50);
+    }
   }
 }
 
 bootWhenReady(() => {
-  // Application State Model
   const AppState = {
     activeView: 'dashboard',
     currentLocation: {
@@ -41,18 +34,7 @@ bootWhenReady(() => {
 
   initApp();
 
-  /**
-   * System Bootstrap
-   *
-   * Senior Architectural Pattern:
-   * Decoupled Subsystem Orchestration with Isolated try...catch Blocks.
-   * UI controls and theme handlers bind synchronously first on DOM ready.
-   * Map initialization, seismic telemetry, and numerical weather polling are completely
-   * decoupled in isolated error boundaries so a single network timeout or API error
-   * never freezes the UI or prevents tab navigation.
-   */
   async function initApp() {
-    // Phase 1: Immediate Synchronous Controls & Theme Initialization
     try {
       initClock();
     } catch (err) {
@@ -65,7 +47,6 @@ bootWhenReady(() => {
       console.warn('Theme initialization notice:', err);
     }
 
-    // Immediately bind all 5 header navigation buttons
     bindHeaderAndThemeControls();
 
     try {
@@ -74,41 +55,40 @@ bootWhenReady(() => {
       console.warn('Modals setup notice:', err);
     }
 
-    // Resolve initial view from URL hash or default to dashboard
     const initialHash = window.location.hash.replace('#', '') || 'dashboard';
     switchView(initialHash);
 
-    // Phase 2: Isolated Subsystems Initializations
     try {
       setupDashboardControls();
     } catch (err) {
       console.warn('Dashboard controls setup notice:', err);
     }
 
-    // Map Subsystem (Leaflet with CARTO Positron Light Tiles)
     try {
       MapEngine.initMap('map-viewport', (evt) => {
         openSeismicForensicModal(evt);
       });
+      setTimeout(() => {
+        if (typeof MapEngine !== 'undefined' && MapEngine.invalidateSize) {
+          MapEngine.invalidateSize();
+        }
+      }, 150);
     } catch (err) {
       console.error('Leaflet MapEngine initialization failed gracefully:', err);
     }
 
-    // Travel Times Climatology Charts Subsystem
     try {
       ChartsEngine.initCharts('tokyo');
     } catch (err) {
       console.warn('ChartsEngine initialization failed gracefully:', err);
     }
 
-    // Disaster Prep & Survival Kit Subsystem
     try {
       DisasterPrep.init();
     } catch (err) {
       console.warn('DisasterPrep initialization failed gracefully:', err);
     }
 
-    // JMA Doppler Radar Sweep Feed Canvas
     try {
       initRadarFeed();
       setupPrepSubNav();
@@ -116,10 +96,8 @@ bootWhenReady(() => {
       console.warn('RadarFeed initialization failed gracefully:', err);
     }
 
-    // Watchlist Subsystem
     try {
       Watchlist.init((city) => {
-        // Direct inspection shortcut from Watchlist card to Dashboard
         switchView('dashboard');
         setLocation(city.lat, city.lon, city.name);
       });
@@ -127,29 +105,24 @@ bootWhenReady(() => {
       console.warn('Watchlist initialization failed gracefully:', err);
     }
 
-    // Phase 3: Real-Time Telemetry & Network Data Streams
-    // Wolfx EEW Early Warning WebSocket / HTTP Stream
     try {
       initWolfxEew();
     } catch (err) {
       console.warn('Wolfx EEW stream initialization notice:', err);
     }
 
-    // USGS Seismic Telemetry Acquisition
     try {
       await refreshSeismicData();
     } catch (err) {
       console.warn('Initial USGS seismic sync failed gracefully:', err);
     }
 
-    // Open-Meteo High-Resolution Weather Polling
     try {
       await refreshWeatherData();
     } catch (err) {
       console.warn('Initial Open-Meteo weather sync failed gracefully:', err);
     }
 
-    // Phase 4: Background Polling Daemon (USGS 60s Interval)
     try {
       if (AppState.pollTimerId) clearInterval(AppState.pollTimerId);
       AppState.pollTimerId = setInterval(() => {
@@ -162,25 +135,7 @@ bootWhenReady(() => {
     }
   }
 
-  // View routing engine managing DOM panel visibility and active navigation button states
-
-  /**
-   * Senior Frontend Engineering Architecture:
-   * View Switching Logic
-   * 
-   * Decoupled view-state transitions managing 4 distinct DOM container elements:
-   * - btn-dashboard -> switches to View 1: Global Dashboard (#view-dashboard)
-   * - btn-disaster  -> switches to View 2: Disaster Track & Prep (#view-disaster)
-   * - btn-planner   -> switches to View 3: Travel Times Planner (#view-planner)
-   * - btn-favorites -> switches to View 4: Favorites Watchlist (#view-favorites)
-   * 
-   * Toggles the .hidden class and .active state across views and buttons to guarantee
-   * instantaneous visibility changes without layout thrashing.
-   * When returning to View 1 (#view-dashboard), map.invalidateSize() is triggered via
-   * MapEngine.resize() to recalculate tile bounds once the container unhides.
-   */
   function switchView(target) {
-    // Normalization mapping for backward compatibility
     let normalized = target;
     if (target === 'disaster-prep') normalized = 'disaster';
     if (target === 'watchlist') normalized = 'favorites';
@@ -190,7 +145,6 @@ bootWhenReady(() => {
 
     AppState.activeView = normalized;
 
-    // View Container Elements
     const viewContainers = {
       dashboard: document.getElementById('view-dashboard'),
       disaster: document.getElementById('view-disaster'),
@@ -198,7 +152,6 @@ bootWhenReady(() => {
       favorites: document.getElementById('view-favorites')
     };
 
-    // Header Navigation Buttons
     const navButtons = {
       dashboard: document.getElementById('btn-dashboard'),
       disaster: document.getElementById('btn-disaster'),
@@ -206,7 +159,6 @@ bootWhenReady(() => {
       favorites: document.getElementById('btn-favorites')
     };
 
-    // Synchronize DOM Views: Toggle .hidden and .active
     Object.keys(viewContainers).forEach(key => {
       const container = viewContainers[key];
       const button = navButtons[key];
@@ -233,16 +185,12 @@ bootWhenReady(() => {
       }
     });
 
-    // Update URL hash without causing an unexpected page scroll jump
     try {
       history.replaceState(null, '', `#${normalized}`);
     } catch (e) {
-      // Sandboxed environment fallback
     }
 
-    // View-specific post-transition lifecycles
     if (normalized === 'dashboard') {
-      // Leaflet in #view-dashboard requires map.invalidateSize() to recalculate tile bounds
       setTimeout(() => {
         try {
           if (typeof MapEngine !== 'undefined' && MapEngine.resize) {
@@ -252,6 +200,14 @@ bootWhenReady(() => {
           console.warn('Map resize notice on view switch:', mapErr);
         }
       }, 60);
+    } else if (normalized === 'disaster') {
+      try {
+        if (typeof resumeRadarAnimation === 'function') {
+          resumeRadarAnimation();
+        }
+      } catch (radarErr) {
+        console.warn('Radar animation resume notice on view switch:', radarErr);
+      }
     } else if (normalized === 'planner') {
       try {
         if (typeof ChartsEngine !== 'undefined' && ChartsEngine.initCharts) {
@@ -271,21 +227,12 @@ bootWhenReady(() => {
     }
   }
 
-  // Alias for backward compatibility
   function navigateToView(viewId) {
     switchView(viewId);
   }
 
-  // Synchronous event binding on DOMContentLoaded to guarantee immediate responsiveness
-
-  /**
-   * Senior Frontend Developer Rationale:
-   * Immediate, isolated event binding on DOMContentLoaded.
-   * Completely decoupled from network responses or external APIs.
-   * Ensures all 5 header buttons (4 view tabs + theme toggle) are responsive instantly.
-   */
+  
   function bindHeaderAndThemeControls() {
-    // 1. View 1: Global Dashboard Button
     const btnDashboard = document.getElementById('btn-dashboard');
     if (btnDashboard) {
       btnDashboard.addEventListener('click', (e) => {
@@ -294,7 +241,6 @@ bootWhenReady(() => {
       });
     }
 
-    // 2. View 2: Disaster Track & Prep Button
     const btnDisaster = document.getElementById('btn-disaster');
     if (btnDisaster) {
       btnDisaster.addEventListener('click', (e) => {
@@ -303,7 +249,6 @@ bootWhenReady(() => {
       });
     }
 
-    // 3. View 3: Travel Times Planner Button
     const btnPlanner = document.getElementById('btn-planner');
     if (btnPlanner) {
       btnPlanner.addEventListener('click', (e) => {
@@ -312,7 +257,6 @@ bootWhenReady(() => {
       });
     }
 
-    // 4. View 4: Favorites Watchlist Button
     const btnFavorites = document.getElementById('btn-favorites');
     if (btnFavorites) {
       btnFavorites.addEventListener('click', (e) => {
@@ -321,7 +265,6 @@ bootWhenReady(() => {
       });
     }
 
-    // 5. Global Theme Toggle Button
     const btnThemeToggle = document.getElementById('btn-theme-toggle') || document.getElementById('global-theme-toggle');
     if (btnThemeToggle) {
       btnThemeToggle.addEventListener('click', (e) => {
@@ -330,14 +273,11 @@ bootWhenReady(() => {
       });
     }
 
-    // Handle hash navigation
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
       if (hash) switchView(hash);
     });
   }
-
-  // Global theme controller persisting state across browser reloads
 
   function getSavedTheme() {
     try {
@@ -348,14 +288,12 @@ bootWhenReady(() => {
   }
 
   function applyTheme(theme) {
-    // Handling global theme via documentElement dataset to prevent unnecessary DOM reflows
     document.documentElement.dataset.theme = theme;
     document.documentElement.className = `theme-${theme}`;
 
     try {
       localStorage.setItem('japan_safe_theme', theme);
     } catch (e) {
-      // LocalStorage sandbox fallback
     }
 
     const darkIcon = document.getElementById('theme-icon-dark');
@@ -389,10 +327,11 @@ bootWhenReady(() => {
     return sel ? sel.value : 'tokyo';
   }
 
-  // Real-time seismic feed and JMA EEW alert stream orchestration
-
+  
   function initWolfxEew() {
-    // Instantiating Wolfx EEW streaming client with automatic HTTP polling fallback
+    if (AppState.eewClient && typeof AppState.eewClient.destroy === 'function') {
+      AppState.eewClient.destroy();
+    }
     AppState.eewClient = new API.WolfxEewClient((eewAlert) => {
       handleLiveEewAlert(eewAlert);
     });
@@ -418,28 +357,31 @@ bootWhenReady(() => {
     }
   }
 
-  /**
-   * Generates a non-intrusive dual-frequency acoustic chime via Web Audio API
-   * Emulates the standard Japanese civil defense emergency tone oscillation (880Hz / 440Hz).
-   */
+    // dual-tone emergency chime (880Hz / 440Hz)
+  let sharedAudioCtx = null;
+
   function playAlertBeep() {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+        sharedAudioCtx = new AudioCtx();
+      }
+      if (sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume();
+      }
+      const osc = sharedAudioCtx.createOscillator();
+      const gain = sharedAudioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.setValueAtTime(440, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.frequency.setValueAtTime(880, sharedAudioCtx.currentTime);
+      osc.frequency.setValueAtTime(440, sharedAudioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.12, sharedAudioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.35);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(sharedAudioCtx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.35);
+      osc.stop(sharedAudioCtx.currentTime + 0.35);
     } catch (e) {
-      // Audio autoplay policy fallback
     }
   }
 
@@ -459,9 +401,6 @@ bootWhenReady(() => {
     }
   }
 
-  /**
-   * Renders the seismic feed using a DocumentFragment to eliminate layout reflows.
-   */
   function renderSeismicFeedList() {
     const container = document.getElementById('seismic-feed-list');
     if (!container) return;
@@ -517,19 +456,22 @@ bootWhenReady(() => {
     if (countEl) countEl.textContent = `${filtered.length} EVENTS`;
   }
 
-  // Open-Meteo meteorological pipeline feeding surface parameters into WBGT and hazard metrics
-
+  
   async function refreshWeatherData() {
-    const loc = AppState.currentLocation;
-    const weather = await API.fetchOpenMeteoWeather(loc.lat, loc.lon);
-    AppState.currentWeather = weather;
-    renderWeatherTelemetry(weather);
+    try {
+      const loc = AppState.currentLocation;
+      if (!loc || loc.lat === undefined || loc.lon === undefined) return;
+      const weather = await API.fetchOpenMeteoWeather(loc.lat, loc.lon);
+      AppState.currentWeather = weather;
+      renderWeatherTelemetry(weather);
+    } catch (err) {
+      console.warn('Weather refresh encountered an error:', err);
+    }
   }
 
   function renderWeatherTelemetry(data) {
     if (!data) return;
 
-    // Location & Hero Display
     const locNameEl = document.getElementById('weather-location-name');
     const locCoordsEl = document.getElementById('weather-location-coords');
     const tempEl = document.getElementById('weather-current-temp');
@@ -540,10 +482,8 @@ bootWhenReady(() => {
     if (tempEl) tempEl.textContent = `${data.temp}°C`;
     if (descEl) descEl.textContent = `${data.conditionText} (Apparent: ${data.apparentTemp}°C)`;
 
-    // Update GIS Map Real-Time weather overlay badge
     MapEngine.updateWeatherBadge(data.temp, data.conditionText);
 
-    // Metrics Matrix Grid
     const rhVal = document.getElementById('metric-val-humidity');
     const pressVal = document.getElementById('metric-val-pressure');
     const windVal = document.getElementById('metric-val-wind');
@@ -554,7 +494,6 @@ bootWhenReady(() => {
     if (windVal) windVal.textContent = `${data.windSpeed} km/h`;
     if (gustVal) gustVal.textContent = `${data.windGusts} km/h`;
 
-    // Hazard Progress Gauges
     const wbgtVal = document.getElementById('gauge-wbgt-val');
     const wbgtFill = document.getElementById('gauge-wbgt-fill');
     if (wbgtVal && wbgtFill) {
@@ -579,7 +518,6 @@ bootWhenReady(() => {
       windGaugeFill.className = `progress-fill ${data.windRisk.fillClass}`;
     }
 
-    // 7-Day Forecast Strip
     renderForecastStrip(data.forecast);
   }
 
@@ -603,10 +541,8 @@ bootWhenReady(() => {
     });
   }
 
-  // Geocoding query interface with in-memory caching to comply with Nominatim rate limits
-
+  
   function setupDashboardControls() {
-    // Seismic Filter Chips
     const chips = document.querySelectorAll('.filter-chip');
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
@@ -617,7 +553,6 @@ bootWhenReady(() => {
       });
     });
 
-    // Refresh Seismic Button
     const refreshBtn = document.getElementById('btn-refresh-seismic');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
@@ -625,7 +560,6 @@ bootWhenReady(() => {
       });
     }
 
-    // Map Layer Toggles
     const toggleButtons = document.querySelectorAll('.layer-toggle-btn');
     toggleButtons.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -641,28 +575,36 @@ bootWhenReady(() => {
       });
     });
 
-    // Nominatim Geocoding Search Bar with Input Debounce
     const searchInput = document.getElementById('dashboard-location-search');
     const dropdown = document.getElementById('search-results-dropdown');
 
     if (searchInput && dropdown) {
+      let activeSearchQuery = '';
+
       searchInput.addEventListener('input', () => {
         clearTimeout(AppState.searchDebounceTimer);
         const query = searchInput.value.trim();
+        activeSearchQuery = query;
 
         if (query.length < 2) {
           dropdown.style.display = 'none';
+          dropdown.innerHTML = '';
           return;
         }
 
-        // Debounce 400ms to adhere strictly to Nominatim rate limits
         AppState.searchDebounceTimer = setTimeout(async () => {
-          const results = await API.geocodeLocation(query);
-          renderSearchResults(results, dropdown);
+          try {
+            const results = await API.geocodeLocation(query);
+            if (searchInput.value.trim() !== query || activeSearchQuery !== query) {
+              return;
+            }
+            renderSearchResults(results, dropdown);
+          } catch (searchErr) {
+            console.warn('Geocoding search notice:', searchErr);
+          }
         }, 400);
       });
 
-      // Close dropdown when clicking outside
       document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
           dropdown.style.display = 'none';
@@ -670,7 +612,6 @@ bootWhenReady(() => {
       });
     }
 
-    // Prefecture Selector for View 3 Planner
     const plannerSelect = document.getElementById('planner-pref-select');
     if (plannerSelect) {
       plannerSelect.addEventListener('change', () => {
@@ -708,10 +649,10 @@ bootWhenReady(() => {
   function setLocation(lat, lon, name) {
     AppState.currentLocation = { name, pref: name, lat, lon };
     MapEngine.flyToCoordinates(lat, lon, 8);
-    refreshWeatherData();
+    refreshWeatherData().catch(err => {
+      console.warn('Weather refresh on setLocation notice:', err);
+    });
   }
-
-  // View 2 sub-navigation between Doppler radar sweep and civil defense SOP accordions
 
   function setupPrepSubNav() {
     const subNavBtns = document.querySelectorAll('.sub-nav-btn');
@@ -748,6 +689,16 @@ bootWhenReady(() => {
   let isRadarSweepActive = true;
   let showTyphoonTrack = true;
   let showPrecipEchoes = true;
+  let drawRadarFrameFn = null;
+
+  function resumeRadarAnimation() {
+    const radarView = document.getElementById('view-disaster');
+    if (radarView && !radarView.classList.contains('hidden') && !radarAnimId) {
+      if (typeof drawRadarFrameFn === 'function') {
+        radarAnimId = requestAnimationFrame(drawRadarFrameFn);
+      }
+    }
+  }
 
   function initRadarFeed() {
     const canvas = document.getElementById('jma-radar-canvas');
@@ -783,17 +734,21 @@ bootWhenReady(() => {
     }
 
     function drawRadarFrame() {
+      const radarView = document.getElementById('view-disaster');
+      if (radarView && radarView.classList.contains('hidden')) {
+        radarAnimId = null;
+        return;
+      }
+
       const w = canvas.width;
       const h = canvas.height;
       const cx = w / 2;
       const cy = h / 2;
       const maxRadius = Math.min(cx, cy) - 15;
 
-      // Dark canvas clear with faint decay
       ctx.fillStyle = '#090B0E';
       ctx.fillRect(0, 0, w, h);
 
-      // Range Rings (100km, 200km, 300km)
       ctx.strokeStyle = '#2B333E';
       ctx.lineWidth = 1;
       const rings = [0.33, 0.66, 1.0];
@@ -807,7 +762,6 @@ bootWhenReady(() => {
         ctx.fillText(`${(idx + 1) * 100} KM`, cx + maxRadius * ratio - 38, cy - 4);
       });
 
-      // Cardinal Coordinate Axes
       ctx.beginPath();
       ctx.moveTo(cx, cy - maxRadius);
       ctx.lineTo(cx, cy + maxRadius);
@@ -815,7 +769,6 @@ bootWhenReady(() => {
       ctx.lineTo(cx + maxRadius, cy);
       ctx.stroke();
 
-      // Cardinal Bearings
       ctx.fillStyle = '#8E9BAE';
       ctx.font = '10px var(--font-sans)';
       ctx.fillText('N (000°)', cx - 18, cy - maxRadius - 4);
@@ -823,7 +776,6 @@ bootWhenReady(() => {
       ctx.fillText('E (090°)', cx + maxRadius + 4, cy + 3);
       ctx.fillText('W (270°)', cx - maxRadius - 44, cy + 3);
 
-      // Coastline representation (Tokyo Bay / Boso / Izu vectors)
       ctx.strokeStyle = '#64748B';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -837,9 +789,7 @@ bootWhenReady(() => {
       ctx.lineTo(cx + 20, cy + 60);
       ctx.stroke();
 
-      // Precipitation Reflectivity Echoes
       if (showPrecipEchoes) {
-        // Echo 1: Heavy offshore storm cell
         const g1 = ctx.createRadialGradient(cx + 65, cy - 35, 5, cx + 65, cy - 35, 45);
         g1.addColorStop(0, 'rgba(225, 29, 72, 0.7)');
         g1.addColorStop(0.4, 'rgba(217, 119, 6, 0.5)');
@@ -850,7 +800,6 @@ bootWhenReady(() => {
         ctx.arc(cx + 65, cy - 35, 45, 0, Math.PI * 2);
         ctx.fill();
 
-        // Echo 2: Inland light frontal rain
         const g2 = ctx.createRadialGradient(cx - 50, cy + 30, 8, cx - 50, cy + 30, 55);
         g2.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
         g2.addColorStop(0.6, 'rgba(16, 185, 129, 0.3)');
@@ -861,7 +810,6 @@ bootWhenReady(() => {
         ctx.fill();
       }
 
-      // Typhoon Projected Trajectory Track
       if (showTyphoonTrack) {
         ctx.strokeStyle = '#D97706';
         ctx.lineWidth = 1.5;
@@ -872,7 +820,6 @@ bootWhenReady(() => {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Typhoon Cone of Uncertainty
         ctx.fillStyle = 'rgba(217, 119, 6, 0.12)';
         ctx.beginPath();
         ctx.arc(cx + 70, cy - 50, 26, 0, Math.PI * 2);
@@ -885,7 +832,6 @@ bootWhenReady(() => {
         ctx.fillText('TYPHOON T2408 (PROJ +12H)', cx + 50, cy - 82);
       }
 
-      // Radar Sweep Line and Sector Beam
       if (isRadarSweepActive) {
         radarAngle = (radarAngle + 0.025) % (Math.PI * 2);
       }
@@ -894,7 +840,6 @@ bootWhenReady(() => {
       sweepGradient.addColorStop(0, 'rgba(16, 185, 129, 0.55)');
       sweepGradient.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
 
-      // Sweep Beam Fan
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(cx, cy);
@@ -903,7 +848,6 @@ bootWhenReady(() => {
       ctx.fillStyle = sweepGradient;
       ctx.fill();
 
-      // Sharp Leading Edge
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(cx + Math.cos(radarAngle) * maxRadius, cy + Math.sin(radarAngle) * maxRadius);
@@ -915,10 +859,14 @@ bootWhenReady(() => {
       radarAnimId = requestAnimationFrame(drawRadarFrame);
     }
 
+    drawRadarFrameFn = drawRadarFrame;
+
+    if (radarAnimId) {
+      cancelAnimationFrame(radarAnimId);
+      radarAnimId = null;
+    }
     drawRadarFrame();
   }
-
-  // Forensic inspection modal controllers and keyboard escape dismissal
 
   function setupModals() {
     const modalBackdrop = document.getElementById('modal-backdrop');
@@ -938,12 +886,10 @@ bootWhenReady(() => {
       });
     }
 
-    // ESC key closes active modal
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeActiveModal();
     });
 
-    // Privacy Policy Trigger
     const privLink = document.getElementById('link-privacy-policy');
     if (privLink) {
       privLink.addEventListener('click', (e) => {
@@ -952,7 +898,6 @@ bootWhenReady(() => {
       });
     }
 
-    // Terms of Service Trigger
     const termsLink = document.getElementById('link-terms-conditions');
     if (termsLink) {
       termsLink.addEventListener('click', (e) => {
@@ -961,7 +906,6 @@ bootWhenReady(() => {
       });
     }
 
-    // Custom Domain Configuration
     const domainLink = document.getElementById('footer-custom-domain');
     if (domainLink) {
       domainLink.addEventListener('click', (e) => {
@@ -970,7 +914,6 @@ bootWhenReady(() => {
       });
     }
 
-    // View Details Alert Card Trigger
     const btnViewAlert = document.getElementById('btn-view-alert-details');
     if (btnViewAlert) {
       btnViewAlert.addEventListener('click', () => {
@@ -978,7 +921,6 @@ bootWhenReady(() => {
       });
     }
 
-    // JMA EEW Status & Alert Card Trigger
     const eewBadge = document.getElementById('eew-telemetry-badge');
     if (eewBadge) {
       eewBadge.style.cursor = 'pointer';
@@ -1117,7 +1059,6 @@ bootWhenReady(() => {
 
     title.textContent = `SEISMIC EVENT FORENSIC REPORT: ${evt.id.toUpperCase()}`;
 
-    // Compute P-wave (approx 6.0 km/s) and S-wave (approx 3.5 km/s) arrival times to reference cities
     const pWaveArrivalSec = Math.round(evt.distToTokyo / 6.0);
     const sWaveArrivalSec = Math.round(evt.distToTokyo / 3.5);
 
@@ -1261,11 +1202,16 @@ bootWhenReady(() => {
     backdrop.classList.add('active');
   }
 
-  // JST reference clock synchronized to Asia/Tokyo timezone
+  let clockTimerId = null;
 
   function initClock() {
     const clockEl = document.getElementById('header-live-clock');
     if (!clockEl) return;
+
+    if (clockTimerId) {
+      clearInterval(clockTimerId);
+      clockTimerId = null;
+    }
 
     function update() {
       const now = new Date();
@@ -1280,6 +1226,6 @@ bootWhenReady(() => {
     }
 
     update();
-    setInterval(update, 1000);
+    clockTimerId = setInterval(update, 1000);
   }
 });
