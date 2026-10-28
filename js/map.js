@@ -1,11 +1,3 @@
-/**
- * Japan Safe & Weather Insights - Geospatial Mapping Subsystem (Leaflet)
- *
- * Implements high-contrast dark cartography utilizing CartoDB Dark Matter basemaps,
- * dynamic SVG epicenter scalar circles with magnitude-weighted radii,
- * tectonic subduction trench overlays, and interactive inspection modals.
- */
-
 const MapEngine = (() => {
   let mapInstance = null;
   let epicenterLayerGroup = null;
@@ -14,7 +6,6 @@ const MapEngine = (() => {
   let activeEpicentersData = [];
   let onMarkerSelectCallback = null;
 
-  // Major Geodynamic Subduction Zones & Plate Boundaries across the Japanese Arc
   const TECTONIC_BOUNDARIES = [
     {
       name: 'Nankai Trough (南海トラフ)',
@@ -53,9 +44,28 @@ const MapEngine = (() => {
     }
   ];
 
-  /**
-   * Initializes the Leaflet map container with strict bounds and high-performance settings.
-   */
+  let resizeListenerAttached = false;
+
+  function handleWindowResize() {
+    if (mapInstance) {
+      mapInstance.invalidateSize();
+    }
+  }
+
+  function destroyMap() {
+    if (mapInstance) {
+      try {
+        mapInstance.remove();
+      } catch (e) {
+      }
+      mapInstance = null;
+    }
+    if (resizeListenerAttached) {
+      window.removeEventListener('resize', handleWindowResize);
+      resizeListenerAttached = false;
+    }
+  }
+
   function initMap(containerId, markerClickCb) {
     onMarkerSelectCallback = markerClickCb;
 
@@ -65,12 +75,7 @@ const MapEngine = (() => {
     }
 
     if (mapInstance) {
-      try {
-        mapInstance.remove();
-      } catch (e) {
-        // Clear existing Leaflet canvas instances to prevent DOM memory leaks on re-initialization
-      }
-      mapInstance = null;
+      destroyMap();
     }
 
     const container = document.getElementById(containerId);
@@ -79,79 +84,76 @@ const MapEngine = (() => {
       return null;
     }
 
-    // Centered geographically on Honshu with optimal archipelago framing
     mapInstance = L.map(containerId, {
       center: [36.5, 138.0],
       zoom: 5,
       minZoom: 4,
-      maxZoom: 12,
+      maxZoom: 19,
       zoomControl: false,
       attributionControl: false
     });
 
-    // Custom Industrial Zoom Control positioned at bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
 
-    // Senior Frontend Engineer Rationale:
-    // Replaced OpenStreetMap default tiles with CARTO Positron Light tiles to resolve
-    // HTTP 403 Access Blocked / Referer restrictions. CARTO Positron supports unauthenticated,
-    // open access across subdomains ['a', 'b', 'c', 'd'] and maintains an exacting, high-contrast
-    // light base cartography consistently regardless of global UI theme.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      subdomains: ['a', 'b', 'c', 'd'],
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 19
+    const basemap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+      maxZoom: 16
     }).addTo(mapInstance);
 
-    // Isolated layer groups ensure granular toggling without expensive DOM re-queries
-    epicenterLayerGroup = L.layerGroup().addTo(mapInstance);
+    basemap.on('tileerror', (e) => {
+      if (e.tile && e.coords) {
+        const osmFallback = `https://tile.openstreetmap.org/${e.coords.z}/${e.coords.x}/${e.coords.y}.png`;
+        if (e.tile.src !== osmFallback) {
+          e.tile.src = osmFallback;
+          e.tile.style.filter = 'brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3)';
+        }
+      }
+    });
+
     tectonicLayerGroup = L.layerGroup().addTo(mapInstance);
     stationsLayerGroup = L.layerGroup().addTo(mapInstance);
+    epicenterLayerGroup = L.layerGroup().addTo(mapInstance);
 
     renderTectonicBoundaries();
     renderWeatherStations();
     setupMapHudEvents();
 
-    // Trigger immediate resize recalculation to prevent gray tiles upon view transitions
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        if (mapInstance) mapInstance.invalidateSize();
+      });
+    }
+
     setTimeout(() => {
       if (mapInstance) mapInstance.invalidateSize();
     }, 100);
+
+    if (!resizeListenerAttached) {
+      window.addEventListener('resize', handleWindowResize);
+      resizeListenerAttached = true;
+    }
+
+    return mapInstance;
   }
 
-  /**
-   * Renders real-time seismic epicenters as styled, magnitude-proportional vector rings.
-   * Features high-contrast borders and concentric shockwave visualizers for significant events.
-   */
   function updateEpicenters(events) {
     if (!epicenterLayerGroup) return;
     epicenterLayerGroup.clearLayers();
     activeEpicentersData = events;
 
     events.forEach(evt => {
-      // Magnitude scaling: Non-linear area expansion reflecting exponential energy release E = 10^(1.5*M)
       const radiusPx = Math.max(6, Math.pow(evt.mag, 1.7) * 1.3);
       
-      let fillColor = '#10B981'; // Optimal Green
-      let strokeColor = '#065F46'; // High-contrast border for light tiles
+      let fillColor = '#10B981';
+      let strokeColor = '#065F46';
       if (evt.mag >= 5.5 || evt.shindo.value >= 4.5) {
-        fillColor = '#E11D48'; // Critical Red
+        fillColor = '#E11D48';
         strokeColor = '#881337';
       } else if (evt.mag >= 4.2 || evt.shindo.value >= 3.0) {
-        fillColor = '#D97706'; // Alert Amber
+        fillColor = '#D97706';
         strokeColor = '#78350F';
       }
 
-      // Leaflet vector circle marker for performance and razor-sharp rendering on light basemap
-      const circle = L.circleMarker([evt.lat, evt.lon], {
-        radius: radiusPx,
-        fillColor: fillColor,
-        color: strokeColor,
-        weight: 2,
-        opacity: 0.95,
-        fillOpacity: 0.65
-      });
-
-      // For significant seismic events (M >= 4.5), render concentric outer shockwave ring
       if (evt.mag >= 4.5) {
         const shockwaveCircle = L.circleMarker([evt.lat, evt.lon], {
           radius: radiusPx * 1.8,
@@ -165,7 +167,15 @@ const MapEngine = (() => {
         shockwaveCircle.addTo(epicenterLayerGroup);
       }
 
-      // Lean popup payload prevents Leaflet DOM balloon bloat during dense cluster inspection
+      const circle = L.circleMarker([evt.lat, evt.lon], {
+        radius: radiusPx,
+        fillColor: fillColor,
+        color: strokeColor,
+        weight: 2,
+        opacity: 0.95,
+        fillOpacity: 0.65
+      });
+
       const popupHtml = `
         <div style="font-family: var(--font-sans); min-width: 170px;">
           <div style="font-size: 11px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">
@@ -185,20 +195,22 @@ const MapEngine = (() => {
       circle.on('popupopen', () => {
         const btn = document.getElementById(`inspect-btn-${evt.id}`);
         if (btn) {
-          btn.addEventListener('click', () => {
+          btn.onclick = () => {
             if (typeof onMarkerSelectCallback === 'function') {
               onMarkerSelectCallback(evt);
             }
-          });
+          };
         }
       });
 
       circle.on('click', () => {
-        // Smooth flyTo transition focuses analyst view directly onto the hypocenter coordinates
         flyToCoordinates(evt.lat, evt.lon, 7);
       });
 
       epicenterLayerGroup.addLayer(circle);
+      if (typeof circle.bringToFront === 'function') {
+        circle.bringToFront();
+      }
     });
 
     const countEl = document.getElementById('hud-seismic-count');
@@ -207,16 +219,13 @@ const MapEngine = (() => {
     }
   }
 
-  /**
-   * Renders the major subduction trench lines across the Japanese Pacific rim.
-   */
   function renderTectonicBoundaries() {
     if (!tectonicLayerGroup) return;
     tectonicLayerGroup.clearLayers();
 
     TECTONIC_BOUNDARIES.forEach(trench => {
       const polyline = L.polyline(trench.coords, {
-        color: '#3B82F6', // Ocean Blue
+        color: '#3B82F6',
         weight: 2,
         opacity: 0.65,
         dashArray: '6, 6'
@@ -231,9 +240,6 @@ const MapEngine = (() => {
     });
   }
 
-  /**
-   * Renders fixed Meteorological Observation nodes for synoptic reference.
-   */
   function renderWeatherStations() {
     if (!stationsLayerGroup) return;
     stationsLayerGroup.clearLayers();
@@ -262,9 +268,6 @@ const MapEngine = (() => {
     });
   }
 
-  /**
-   * Listens to map movements to update live coordinate HUD readout.
-   */
   function setupMapHudEvents() {
     if (!mapInstance) return;
 
@@ -284,9 +287,6 @@ const MapEngine = (() => {
     });
   }
 
-  /**
-   * Smooth animated camera transition to selected geodetic coordinates.
-   */
   function flyToCoordinates(lat, lon, zoom = 7) {
     if (!mapInstance) return;
     mapInstance.flyTo([lat, lon], zoom, {
@@ -295,20 +295,33 @@ const MapEngine = (() => {
     });
   }
 
-  /**
-   * Layer Visibility Toggles
-   */
   function toggleLayer(layerType, isVisible) {
     if (!mapInstance) return;
     if (layerType === 'epicenters' && epicenterLayerGroup) {
-      if (isVisible) mapInstance.addLayer(epicenterLayerGroup);
-      else mapInstance.removeLayer(epicenterLayerGroup);
+      if (isVisible) {
+        mapInstance.addLayer(epicenterLayerGroup);
+        epicenterLayerGroup.eachLayer(l => { if (typeof l.bringToFront === 'function') l.bringToFront(); });
+      } else {
+        mapInstance.removeLayer(epicenterLayerGroup);
+      }
     } else if (layerType === 'tectonics' && tectonicLayerGroup) {
-      if (isVisible) mapInstance.addLayer(tectonicLayerGroup);
-      else mapInstance.removeLayer(tectonicLayerGroup);
+      if (isVisible) {
+        mapInstance.addLayer(tectonicLayerGroup);
+        if (mapInstance.hasLayer(epicenterLayerGroup)) {
+          epicenterLayerGroup.eachLayer(l => { if (typeof l.bringToFront === 'function') l.bringToFront(); });
+        }
+      } else {
+        mapInstance.removeLayer(tectonicLayerGroup);
+      }
     } else if (layerType === 'stations' && stationsLayerGroup) {
-      if (isVisible) mapInstance.addLayer(stationsLayerGroup);
-      else mapInstance.removeLayer(stationsLayerGroup);
+      if (isVisible) {
+        mapInstance.addLayer(stationsLayerGroup);
+        if (mapInstance.hasLayer(epicenterLayerGroup)) {
+          epicenterLayerGroup.eachLayer(l => { if (typeof l.bringToFront === 'function') l.bringToFront(); });
+        }
+      } else {
+        mapInstance.removeLayer(stationsLayerGroup);
+      }
     }
   }
 
@@ -318,9 +331,6 @@ const MapEngine = (() => {
     }
   }
 
-  /**
-   * Updates real-time meteorological overlay badge on the primary GIS canvas.
-   */
   function updateWeatherBadge(temp, conditionText) {
     const badgeTemp = document.getElementById('map-weather-badge-temp');
     const badgeCond = document.getElementById('map-weather-badge-cond');
@@ -330,6 +340,7 @@ const MapEngine = (() => {
 
   return {
     initMap,
+    destroyMap,
     updateEpicenters,
     flyToCoordinates,
     toggleLayer,
