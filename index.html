@@ -3,33 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Japan Safe & Weather Insights: Operational Civil Defense, Seismological Telemetry, and High-Resolution Meteorological Surveillance.">
-  <title>Japan Safe & Weather Insights | Civil Defense Telemetry</title>
+  <meta name="description" content="Japan Seismic Dashboard: Real-time seismological telemetry, JMA Shindo calculations, USGS event feeds, and civil defense hazard analysis.">
+  <title>Japan Seismic Dashboard | Real-Time Seismological Surveillance</title>
 
-  <!-- Leaflet GIS Cartography Stylesheet -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E11D48' stroke-width='2.5' stroke-linecap='square'%3E%3Cpolyline points='2 12 6 12 9 4 15 20 18 12 22 12'/%3E%3C/svg%3E">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
-  <!-- Production Design Tokens & High-Contrast Layout Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-  <!-- Application header with branding, telemetry monitors, and view tabs -->
   <header class="app-header">
     <div class="brand-section">
       <div class="brand-mark" aria-hidden="true">
-        <!-- Sharp Vector Seismic Wave Icon -->
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
           <polyline points="2 12 6 12 9 4 15 20 18 12 22 12"></polyline>
         </svg>
       </div>
       <div class="brand-text">
-        <span class="brand-title">Japan Safe & Weather Insights</span>
-        <span class="brand-subtitle">JMA & USGS CIVIL DEFENSE TELEMETRY</span>
+        <span class="brand-title">Japan Seismic Dashboard</span>
+        <span class="brand-subtitle">REAL-TIME SEISMOLOGICAL TELEMETRY · JMA &amp; USGS SURVEILLANCE</span>
       </div>
     </div>
 
-    <!-- Exacting Navigation Switcher -->
     <nav class="view-nav" role="tablist" aria-label="System Views">
       <button id="btn-dashboard" class="nav-btn active" data-view="dashboard" role="tab" aria-selected="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
@@ -38,14 +35,14 @@
           <rect x="14" y="12" width="7" height="9"></rect>
           <rect x="3" y="16" width="7" height="5"></rect>
         </svg>
-        <span>Global Dashboard</span>
+        <span>Seismic Monitor</span>
       </button>
 
       <button id="btn-disaster" class="nav-btn" data-view="disaster" role="tab" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
-        <span>Disaster Track & Prep</span>
+        <span>Civil Defense</span>
       </button>
 
       <button id="btn-planner" class="nav-btn" data-view="planner" role="tab" aria-selected="false">
@@ -55,20 +52,18 @@
           <line x1="8" y1="2" x2="8" y2="6"></line>
           <line x1="3" y1="10" x2="21" y2="10"></line>
         </svg>
-        <span>Travel Times Planner</span>
+        <span>Climatological Baseline</span>
       </button>
 
       <button id="btn-favorites" class="nav-btn" data-view="favorites" role="tab" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
         </svg>
-        <span>Favorites Watchlist</span>
+        <span>Monitored Stations</span>
       </button>
     </nav>
 
-    <!-- System Telemetry, Global Theme Switcher & Clock Status -->
     <div class="system-telemetry-status">
-      <!-- Global Dark/Light Mode Toggle (Strict Sharp Rectilinear Geometry, Zero Emojis) -->
       <button id="btn-theme-toggle" class="theme-toggle-btn" aria-label="Toggle Global Theme" title="Toggle Dark/Light Mode">
         <svg id="theme-icon-dark" class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -95,14 +90,11 @@
     </div>
   </header>
 
-  <!-- Main viewport container hosting all four decoupled view panels -->
   <main class="app-viewport">
 
-    <!-- View 1: 3-column asymmetric dashboard housing seismic, cartographic, and weather feeds -->
     <section id="view-dashboard" class="view-panel active" role="tabpanel">
       <div class="dashboard-grid">
 
-        <!-- Column 1: Seismic & EEW Feed -->
         <aside class="col-panel">
           <div class="panel-header">
             <div class="panel-title-group">
@@ -127,13 +119,10 @@
           </div>
 
           <div id="seismic-feed-list" class="feed-scroll-container">
-            <!-- Dynamic Seismic Cards Inserted Here via DocumentFragment -->
           </div>
         </aside>
 
-        <!-- Column 2: Geospatial Map Viewport -->
         <section class="map-column">
-          <!-- Top HUD Display -->
           <div class="map-hud-top">
             <div class="hud-badge">
               <span class="hud-badge-label">Archipelago Status:</span>
@@ -145,21 +134,16 @@
             </div>
           </div>
 
-          <!-- High-Priority Warning Overlay Banner -->
           <div id="hud-warning-banner" style="display: none; position: absolute; top: 56px; left: 12px; right: 12px; z-index: 550; background: #E11D48; color: #FFFFFF; padding: 10px 14px; font-family: var(--font-mono); font-size: 11px; border: 1px solid #FDA4AF; box-shadow: var(--shadow-md);">
-            <!-- Live EEW Dispatches Appear Here -->
           </div>
 
-          <!-- Real-Time Weather Badge Overlay (Platform Master Spec View 1) -->
           <div id="map-weather-badge" class="map-weather-badge">
             <span class="weather-badge-temp" id="map-weather-badge-temp">17°C</span>
             <span class="weather-badge-cond" id="map-weather-badge-cond">Clear Skies</span>
           </div>
 
-          <!-- Leaflet GIS Map Canvas -->
           <div id="map-viewport" class="map-viewport"></div>
 
-          <!-- Layer Visibility Controls (HUD Bottom Left) -->
           <div class="map-layer-controls">
             <button class="layer-toggle-btn active" data-layer="epicenters">
               <span>Seismic Epicenters</span>
@@ -176,87 +160,33 @@
           </div>
         </section>
 
-        <!-- Column 3: Meteorological Telemetry & Active Hazards -->
         <aside class="col-panel">
           <div class="panel-header">
             <div class="panel-title-group">
-              <span class="panel-title">Localized Weather</span>
+              <span class="panel-title">Atmospheric Telemetry</span>
               <span class="panel-meta">OPEN-METEO NWP</span>
             </div>
           </div>
 
-          <!-- Geocoding Location Search -->
           <div class="location-search-bar">
             <input id="dashboard-location-search" type="text" class="search-input" placeholder="Search Japanese Prefecture (e.g. Kyoto, Sendai)..." autocomplete="off">
             <div id="search-results-dropdown" class="search-results-dropdown"></div>
           </div>
 
           <div class="weather-content-scroll">
-            <!-- Master Spec View 1: JMA Modal Alert Card -->
             <div class="alert-card-jma" id="dashboard-jma-alert-card">
               <div class="alert-card-header">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
                   <polygon points="12 2 1 21 23 21 12 2"></polygon>
                 </svg>
-                <span>JMA ALERT</span>
+                <span>JMA EARLY WARNING</span>
               </div>
-              <div class="alert-card-title" id="jma-alert-headline">M6.5 Earthquake Warning</div>
-              <div class="alert-card-subhead" id="jma-alert-location">Offshore Fukushima</div>
-              <div class="alert-card-desc" id="jma-alert-subtext">Expect strong shaking. Tsunami advisory in effect for coastal zones.</div>
-              <button id="btn-view-alert-details" class="alert-card-btn">View Details</button>
+              <div class="alert-card-title" id="jma-alert-headline">EEW Surveillance Standby</div>
+              <div class="alert-card-subhead" id="jma-alert-location">Archipelago Nominal (Wolfx Mirror)</div>
+              <div class="alert-card-desc" id="jma-alert-subtext">JMA early warning stream active. Automated alert triggers on Shindo 5-Lower and above.</div>
+              <button id="btn-view-alert-details" class="alert-card-btn">Inspect EEW Stream</button>
             </div>
 
-            <!-- Master Spec View 1: Recent Activity Stream -->
-            <div class="recent-activity-panel">
-              <div class="panel-section-title">Recent Activity</div>
-              <div class="recent-activity-list">
-                <div class="activity-item">
-                  <span class="activity-dot amber"></span>
-                  <span class="activity-text">Typhoon Advisory (Kyoto)</span>
-                </div>
-                <div class="activity-item">
-                  <span class="activity-dot green"></span>
-                  <span class="activity-text">All Clear (Tokyo)</span>
-                </div>
-                <div class="activity-item">
-                  <span class="activity-dot blue"></span>
-                  <span class="activity-text">Marine Gale Warning (Tohoku)</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Master Spec View 1: Seasonal Forecasts Risk Bars -->
-            <div class="seasonal-forecasts-panel">
-              <div class="panel-section-title">Seasonal Forecasts</div>
-              <div class="seasonal-bars-group">
-                <div class="seasonal-bar-col">
-                  <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 42%; background-color: var(--color-optimal-green);" title="Spring Risk: 42%"></div>
-                  </div>
-                  <span class="seasonal-bar-label">SPR</span>
-                </div>
-                <div class="seasonal-bar-col">
-                  <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 75%; background-color: var(--color-alert-amber);" title="Summer Risk: 75%"></div>
-                  </div>
-                  <span class="seasonal-bar-label">SUM</span>
-                </div>
-                <div class="seasonal-bar-col">
-                  <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 90%; background-color: var(--color-critical-red);" title="Autumn Risk: 90%"></div>
-                  </div>
-                  <span class="seasonal-bar-label">AUT</span>
-                </div>
-                <div class="seasonal-bar-col">
-                  <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 52%; background-color: var(--color-ocean-blue);" title="Winter Risk: 52%"></div>
-                  </div>
-                  <span class="seasonal-bar-label">WIN</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Current Weather Overview Hero -->
             <div class="current-weather-hero">
               <div class="weather-hero-top">
                 <div>
@@ -268,7 +198,6 @@
               <div id="weather-current-desc" class="weather-summary-text">Telemetry Initializing...</div>
             </div>
 
-            <!-- Environmental Telemetry Matrix -->
             <div class="metrics-matrix-grid">
               <div class="metric-cell">
                 <div class="metric-cell-label">Relative Humidity</div>
@@ -292,14 +221,12 @@
               </div>
             </div>
 
-            <!-- Hazard Advisory Box with Analytical Progress Gauges -->
             <div class="hazard-advisory-box">
               <div class="hazard-box-title">
                 <span>Civil Hazard Evaluation</span>
                 <span style="font-family: var(--font-mono); font-size: 10px; color: var(--color-slate-muted);">JMA / MOE Criteria</span>
               </div>
 
-              <!-- WBGT Heatstroke Exposure -->
               <div class="hazard-gauge-row">
                 <div class="hazard-gauge-header">
                   <span>Heatstroke Risk (WBGT Index)</span>
@@ -310,7 +237,6 @@
                 </div>
               </div>
 
-              <!-- Precipitation Inundation Warning -->
               <div class="hazard-gauge-row">
                 <div class="hazard-gauge-header">
                   <span>Precipitation Inundation</span>
@@ -321,7 +247,6 @@
                 </div>
               </div>
 
-              <!-- Gale & Cyclonic Wind Risk -->
               <div class="hazard-gauge-row" style="margin-bottom: 0;">
                 <div class="hazard-gauge-header">
                   <span>Wind / Gale Warning</span>
@@ -333,13 +258,11 @@
               </div>
             </div>
 
-            <!-- 7-Day High-Contrast Numerical Forecast -->
             <div>
               <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-pure-white); margin-bottom: 8px;">
                 7-Day Model Outlook
               </div>
               <div id="forecast-strip-container" class="forecast-strip">
-                <!-- Forecast rows populated via JavaScript -->
               </div>
             </div>
           </div>
@@ -348,7 +271,6 @@
       </div>
     </section>
 
-    <!-- View 2: Disaster tracking protocols, JMA radar canvas, and Tokyo BCP checklist -->
     <section id="view-disaster" class="view-panel hidden" role="tabpanel">
       <div class="prep-container">
         
@@ -372,35 +294,32 @@
           </div>
         </div>
 
-        <!-- Master Spec View 2: Horizontal Sub-Navigation -->
         <div class="prep-sub-nav">
           <button class="sub-nav-btn active" data-subtab="radar">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M12 2a10 10 0 0 1 10 10"></path>
             </svg>
-            <span>Typhoon Radar</span>
+            <span>Radar Surveillance</span>
           </button>
           <button class="sub-nav-btn" data-subtab="seismic">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="2 12 6 12 9 4 15 20 18 12 22 12"></polyline>
             </svg>
-            <span>Seismic Protocols</span>
+            <span>Seismic Protocols (Shindo)</span>
           </button>
           <button class="sub-nav-btn" data-subtab="evacuation">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
-            <span>Evacuation Maps</span>
+            <span>Evacuation Hierarchy</span>
           </button>
         </div>
 
         <div class="prep-two-column-layout">
 
-          <!-- Left Column: Live JMA Radar Feed & Interactive Expanding Accordions -->
           <div class="prep-left-column">
             
-            <!-- Live JMA Radar Feed Container (Master Spec View 2) -->
             <div class="light-panel-card radar-feed-card" id="radar-feed-panel">
               <div class="light-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -426,7 +345,6 @@
               </div>
             </div>
 
-            <!-- Interactive Expanding Accordions -->
             <div class="light-panel-card">
               <div class="light-panel-header">
                 <span class="light-panel-title">Emergency Standard Operating Procedures</span>
@@ -435,7 +353,6 @@
               <div class="light-panel-body">
                 <div class="accordion-group">
 
-                  <!-- Accordion 1: Typhoon Classification -->
                   <div class="accordion-item open">
                     <button class="accordion-trigger" aria-expanded="true">
                       <span class="accordion-trigger-title">
@@ -483,7 +400,6 @@
                     </div>
                   </div>
 
-                  <!-- Accordion 2: 5-Stage Evacuation Alert Hierarchy -->
                   <div class="accordion-item">
                     <button class="accordion-trigger" aria-expanded="false">
                       <span class="accordion-trigger-title">
@@ -537,7 +453,6 @@
                     </div>
                   </div>
 
-                  <!-- Accordion 3: JMA Seismic Intensity Scale -->
                   <div class="accordion-item">
                     <button class="accordion-trigger" aria-expanded="false">
                       <span class="accordion-trigger-title">
@@ -562,7 +477,6 @@
                     </div>
                   </div>
 
-                  <!-- Accordion 4: Coastal Tsunami Threat Response -->
                   <div class="accordion-item">
                     <button class="accordion-trigger" aria-expanded="false">
                       <span class="accordion-trigger-title">
@@ -591,7 +505,6 @@
 
           </div>
 
-          <!-- Right Column: Emergency Checklist (Master Spec Screenshot 2) -->
           <div class="light-panel-card">
             <div class="light-panel-header">
               <span class="light-panel-title">Emergency Checklist</span>
@@ -599,7 +512,6 @@
             </div>
             <div class="light-panel-body">
               
-              <!-- Quick Triage Checklist (Master Spec Screenshot 2) -->
               <div class="quick-checklist-card">
                 <div class="quick-checklist-title">Immediate Action Triage</div>
                 <div class="quick-checklist-items">
@@ -621,7 +533,6 @@
                 </div>
               </div>
 
-              <!-- Comprehensive Tokyo BCP 72-Hour Survival Kit -->
               <div class="checklist-progress-box">
                 <div class="checklist-progress-header">
                   <span>Tokyo BCP 72-Hour Preparedness Audit</span>
@@ -632,7 +543,6 @@
                 </div>
               </div>
 
-              <!-- Filter Category Buttons -->
               <div class="checklist-filter-bar">
                 <button class="chk-filter-btn active" data-filter="all">All Items</button>
                 <button class="chk-filter-btn" data-filter="water">Water & Nutrition</button>
@@ -641,12 +551,9 @@
                 <button class="chk-filter-btn" data-filter="sanitation">Sanitation & Shelter</button>
               </div>
 
-              <!-- Checklist Scroll Container -->
               <div id="checklist-items-container" class="checklist-items-scroll">
-                <!-- Dynamically Rendered Checklist Items -->
               </div>
 
-              <!-- Add Custom Item Form -->
               <form id="add-custom-item-form" class="add-item-form">
                 <input id="custom-item-input" type="text" class="light-input" placeholder="Add custom item (e.g. Pet emergency food)..." autocomplete="off">
                 <button type="submit" class="action-btn btn-primary">Add Item</button>
@@ -660,14 +567,13 @@
       </div>
     </section>
 
-    <!-- View 3: Climatological travel times planner and 12-month seasonal projections -->
     <section id="view-planner" class="view-panel hidden" role="tabpanel">
       <div class="planner-container">
         
         <div class="view-header-strip" style="border-bottom: 1px solid var(--view-border); margin-bottom: 20px;">
           <div class="view-heading-group">
-            <h1 class="view-main-title">Travel Times & Climatological Risk Planner</h1>
-            <span class="view-sub-title">Temporal Area Projections (Jan to Dec) with JMA 30-Year Normative Climatology Baseline</span>
+            <h1 class="view-main-title">Seismological &amp; Climatological Baseline Analysis</h1>
+            <span class="view-sub-title">Temporal Multi-Factor Hazard Projections with JMA 30-Year Normative Baseline</span>
           </div>
           <div class="pref-dropdown-group">
             <label for="planner-pref-select" style="font-size: 11px; text-transform: uppercase; color: var(--color-slate-muted); font-weight: 700;">Observation Node:</label>
@@ -686,22 +592,21 @@
           </div>
         </div>
 
-        <!-- Master Spec View 3: Dynamic Calendar View (Temperature & Precipitation) -->
         <div class="hero-climate-card">
           <div class="hero-climate-header">
             <div>
-              <h2 class="hero-climate-title">Best Travel Times</h2>
-              <div class="hero-climate-subtitle" id="planner-subtext">Optimal mild weather and Sakura peak · 5-year averages from Open-Meteo</div>
+              <h2 class="hero-climate-title">Annual Climatological Risk Envelope</h2>
+              <div class="hero-climate-subtitle" id="planner-subtext">Integrated ambient temperature and precipitation envelope based on 30-year JMA climatological baseline</div>
             </div>
             <div class="hero-climate-badge" id="planner-recom-badge">
               <span class="badge-dot"></span>
-              <span id="planner-recom-text">Recommended: March - May (Sakura Peak: Late March)</span>
+              <span id="planner-recom-text">Low Climatological Risk: March - May</span>
             </div>
           </div>
 
           <div class="hero-chart-wrapper">
             <div class="hero-chart-header-row">
-              <span class="hero-chart-heading">Dynamic Calendar View (Temperature & Precipitation)</span>
+              <span class="hero-chart-heading">Annual Climatological Norms (Temperature &amp; Precipitation Envelope)</span>
               <div class="chart-legend">
                 <span class="legend-key"><span class="key-swatch" style="background: #10B981;"></span>Temperature (°C)</span>
                 <span class="legend-key"><span class="key-swatch dashed" style="background: #3B82F6;"></span>Precipitation (mm)</span>
@@ -712,10 +617,8 @@
           </div>
         </div>
 
-        <!-- 4-Quadrant Area Charts Matrix -->
         <div class="charts-matrix-grid">
 
-          <!-- Chart 1: Temperature Envelope Area Chart -->
           <div class="chart-card">
             <div class="chart-header">
               <span class="chart-title">Monthly Temperature Envelope (°C)</span>
@@ -728,7 +631,6 @@
             <div class="chart-tooltip-box"></div>
           </div>
 
-          <!-- Chart 2: Precipitation Accumulation & Tsuyu Rainy Season Area Chart -->
           <div class="chart-card">
             <div class="chart-header">
               <span class="chart-title">Precipitation Accumulation & Tsuyu Index (mm)</span>
@@ -740,7 +642,6 @@
             <div class="chart-tooltip-box"></div>
           </div>
 
-          <!-- Chart 3: Typhoon Threat Index Area Chart -->
           <div class="chart-card">
             <div class="chart-header">
               <span class="chart-title">Typhoon Approach Probability Index (0-100)</span>
@@ -752,7 +653,6 @@
             <div class="chart-tooltip-box"></div>
           </div>
 
-          <!-- Chart 4: Historical Regional Seismic Baseline Area Chart -->
           <div class="chart-card">
             <div class="chart-header">
               <span class="chart-title">Seismic Frequency Baseline (Events M≥3.0 / mo)</span>
@@ -766,7 +666,6 @@
 
         </div>
 
-        <!-- 12-Month Objective Seasonal Feasibility Matrix -->
         <div class="feasibility-matrix-card">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -783,38 +682,35 @@
           </div>
 
           <div id="feasibility-matrix-grid" class="feasibility-grid">
-            <!-- 12 Month Cells populated dynamically -->
           </div>
         </div>
 
       </div>
     </section>
 
-    <!-- View 4: Municipal surveillance watchlist with auto-fit layout and multi-hazard gauges -->
     <section id="view-favorites" class="view-panel hidden" role="tabpanel">
       <div class="watchlist-container">
         
         <div class="view-header-strip">
           <div class="view-heading-group">
-            <h1 class="view-main-title">Monitored Prefectures & Municipal Watchlist</h1>
-            <span class="view-sub-title">Auto-Fit Multi-Hazard Model Gauges Saved to Local Storage</span>
+            <h1 class="view-main-title">Monitored Prefectures &amp; Municipal Seismic Nodes</h1>
+            <span class="view-sub-title">Real-Time Atmospheric &amp; Seismic Telemetry Gauges Persisted to Local Storage</span>
           </div>
           <span id="watchlist-total-count" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--color-light-muted);">
             5 Saved Locations
           </span>
         </div>
 
-        <!-- Watchlist Control Toolbar -->
         <div class="watchlist-toolbar">
           <form id="watchlist-add-form" class="watchlist-search-form">
             <input id="watchlist-search-input" type="text" class="light-input" placeholder="Search city or prefecture (e.g. Hiroshima, Kanazawa)..." autocomplete="off">
-            <button type="submit" class="action-btn btn-primary">Add City</button>
+            <button type="submit" class="action-btn btn-primary">Add Node</button>
           </form>
 
           <div style="display: flex; align-items: center; gap: 10px;">
-            <label for="watchlist-preset-select" style="font-size: 11px; font-weight: 700; color: var(--color-light-muted);">Quick Add Preset:</label>
+            <label for="watchlist-preset-select" style="font-size: 11px; font-weight: 700; color: var(--color-light-muted);">Preset Seismic Node:</label>
             <select id="watchlist-preset-select" class="light-input" style="width: 170px;">
-              <option value="">Select Prefecture...</option>
+              <option value="">Select Seismic Node...</option>
               <option value="sendai">Sendai (Miyagi)</option>
               <option value="hiroshima">Hiroshima (Chugoku)</option>
               <option value="naha">Naha (Okinawa)</option>
@@ -824,9 +720,7 @@
           </div>
         </div>
 
-        <!-- Responsive Auto-Fit Cards Grid -->
         <div id="watchlist-cards-grid" class="watchlist-cards-grid">
-          <!-- Watch cards rendered dynamically with real-time mini-gauges -->
         </div>
 
       </div>
@@ -834,7 +728,6 @@
 
   </main>
 
-  <!-- Inspection modal backdrop and detailed telemetry card -->
   <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
     <div class="modal-card">
       <div class="modal-header">
@@ -847,7 +740,6 @@
         </button>
       </div>
       <div id="modal-body-container" class="modal-body">
-        <!-- Content injected dynamically by modal handlers -->
       </div>
       <div class="modal-footer">
         <button class="action-btn modal-close-trigger" style="background-color: var(--color-slate-panel);">Close Inspection</button>
@@ -855,7 +747,6 @@
     </div>
   </div>
 
-  <!-- Academic footer with institutional citations, custom domain routing, and legal modals -->
   <footer class="app-footer">
     <div class="footer-citations">
       <span>TELEMETRY SOURCES:</span>
@@ -869,16 +760,14 @@
     </div>
 
     <div class="footer-nav">
-      <!-- Reserved Custom Domain Link -->
-      <a id="footer-custom-domain" href="https://japansafe.example.go.jp" class="footer-domain-badge">
-        japansafe.example.go.jp
+      <a id="footer-custom-domain" href="#" class="footer-domain-badge">
+        seismic.jma-telemetry.jp
       </a>
       <a id="link-privacy-policy" href="#" class="footer-link">Privacy Policy</a>
       <a id="link-terms-conditions" href="#" class="footer-link">Terms & Conditions</a>
     </div>
   </footer>
 
-  <!-- Subsystem JavaScript Modules -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="js/api.js"></script>
   <script src="js/map.js"></script>
