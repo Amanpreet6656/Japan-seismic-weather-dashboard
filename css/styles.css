@@ -1975,9 +1975,9 @@ main.app-viewport {
 }
 
 .sub-nav-btn {
-  background-color: #FFFFFF;
-  border: 1px solid var(--color-light-border);
-  color: var(--color-light-muted);
+  background-color: var(--view-panel-bg);
+  border: 1px solid var(--view-border);
+  color: var(--view-text-muted);
   padding: 6px 14px;
   font-size: 11px;
   font-weight: 600;
@@ -1991,17 +1991,17 @@ main.app-viewport {
 }
 
 .sub-nav-btn:hover {
-  color: #090B0E;
-  border-color: #94A3B8;
+  color: var(--view-text);
+  border-color: var(--color-ocean-blue);
 }
 
 .sub-nav-btn.active {
-  background-color: #090B0E;
+  background-color: var(--color-ocean-blue);
   color: #FFFFFF;
-  border-color: #090B0E;
+  border-color: var(--color-ocean-blue);
 }
 
-/* Live JMA Radar Feed Card */
+/* Simulated Radar Sweep Card */
 .radar-feed-card {
   overflow: hidden;
 }
@@ -2045,14 +2045,14 @@ main.app-viewport {
   display: flex;
   gap: 8px;
   padding: 10px 14px;
-  background-color: #F8FAFC;
-  border-top: 1px solid var(--color-light-border);
+  background-color: var(--view-panel-header);
+  border-top: 1px solid var(--view-border);
 }
 
 .radar-chip-btn {
-  background-color: #FFFFFF;
-  border: 1px solid var(--color-light-border);
-  color: var(--color-light-text);
+  background-color: var(--view-panel-bg);
+  border: 1px solid var(--view-border);
+  color: var(--view-text);
   padding: 4px 10px;
   font-size: 10px;
   font-family: var(--font-mono);
@@ -2063,15 +2063,15 @@ main.app-viewport {
 }
 
 .radar-chip-btn.active {
-  background-color: #090B0E;
+  background-color: var(--color-ocean-blue);
   color: #FFFFFF;
-  border-color: #090B0E;
+  border-color: var(--color-ocean-blue);
 }
 
 /* Quick Checklist Triage */
 .quick-checklist-card {
-  background-color: #F8FAFC;
-  border: 1px solid var(--color-light-border);
+  background-color: var(--view-panel-header);
+  border: 1px solid var(--view-border);
   padding: 12px;
   border-radius: var(--radius-xs);
   margin-bottom: 14px;
@@ -2082,7 +2082,7 @@ main.app-viewport {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-light-muted);
+  color: var(--view-text-muted);
   margin-bottom: 8px;
 }
 
@@ -2104,9 +2104,9 @@ main.app-viewport {
   appearance: none;
   width: 14px;
   height: 14px;
-  border: 1px solid var(--color-light-border);
+  border: 1px solid var(--view-border);
   border-radius: var(--radius-xs);
-  background-color: #FFFFFF;
+  background-color: var(--view-panel-bg);
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
@@ -2130,7 +2130,7 @@ main.app-viewport {
 }
 
 .quick-check-text {
-  color: #090B0E;
+  color: var(--view-text);
   font-weight: 600;
 }
 
@@ -2232,13 +2232,13 @@ main.app-viewport {
 .watch-city-name {
   font-size: 15px;
   font-weight: 700;
-  color: #090B0E;
+  color: var(--view-text);
 }
 
 .watch-city-kanji {
   font-size: 12px;
   font-family: var(--font-sans);
-  color: var(--color-light-muted);
+  color: var(--view-text-muted);
   font-weight: 600;
 }
 
