@@ -246,6 +246,7 @@ const DisasterPrep = (() => {
       itemEl.className = `checklist-item ${item.checked ? 'checked' : ''}`;
       itemEl.dataset.id = item.id;
 
+      const safeEsc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       itemEl.innerHTML = `
         <div class="chk-box-custom" role="checkbox" aria-checked="${item.checked}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square">
@@ -254,10 +255,10 @@ const DisasterPrep = (() => {
         </div>
         <div class="item-info">
           <div style="display: flex; align-items: center; justify-content: space-between;">
-            <span class="item-title">${item.title}</span>
-            <span class="item-badge-light">${item.priority}</span>
+            <span class="item-title">${safeEsc(item.title)}</span>
+            <span class="item-badge-light">${safeEsc(item.priority)}</span>
           </div>
-          <p class="item-subtext">${item.desc}</p>
+          <p class="item-subtext">${safeEsc(item.desc)}</p>
         </div>
       `;
 

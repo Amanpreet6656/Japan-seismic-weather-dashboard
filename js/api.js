@@ -676,8 +676,9 @@ const API = (() => {
     return [
       {
         id: 'fallback-001',
-        title: 'M 4.4 - Off the East Coast of Honshu, Japan',
-        place: '100 km ESE of Takahagi',
+        isFallback: true,
+        title: 'M 4.4 - Sample Offline Entry (Off East Coast of Honshu)',
+        place: 'Sample Offline Data (USGS Unreachable)',
         mag: 4.4,
         depth: 36,
         lat: 36.415,
@@ -689,13 +690,14 @@ const API = (() => {
         tagClass: 'norm',
         distToTokyo: 195,
         url: 'https://earthquake.usgs.gov/',
-        feltReports: 12,
+        feltReports: 0,
         tsunami: 0
       },
       {
         id: 'fallback-002',
-        title: 'M 4.1 - Hokkaido Region, Japan',
-        place: '81 km NE of Esashi',
+        isFallback: true,
+        title: 'M 4.1 - Sample Offline Entry (Hokkaido Region)',
+        place: 'Sample Offline Data (USGS Unreachable)',
         mag: 4.1,
         depth: 277,
         lat: 45.353,
@@ -707,25 +709,7 @@ const API = (() => {
         tagClass: 'norm',
         distToTokyo: 1110,
         url: 'https://earthquake.usgs.gov/',
-        feltReports: 2,
-        tsunami: 0
-      },
-      {
-        id: 'fallback-003',
-        title: 'M 5.1 - Izu Islands Region',
-        place: 'Izu Ridge Subduction Zone',
-        mag: 5.1,
-        depth: 18,
-        lat: 33.120,
-        lon: 139.810,
-        time: now - 18400000,
-        timestampStr: formatIsoTime(now - 18400000),
-        shindo: calculateJmaShindo(5.1, 18, 0),
-        severity: 'level-alert',
-        tagClass: 'warn',
-        distToTokyo: 285,
-        url: 'https://earthquake.usgs.gov/',
-        feltReports: 45,
+        feltReports: 0,
         tsunami: 0
       }
     ];
@@ -733,6 +717,7 @@ const API = (() => {
 
   function getFallbackWeatherData(lat, lon) {
     return {
+      isFallback: true,
       temp: 18.5,
       apparentTemp: 18.0,
       humidity: 64,

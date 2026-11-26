@@ -179,56 +179,48 @@
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
                   <polygon points="12 2 1 21 23 21 12 2"></polygon>
                 </svg>
-                <span>JMA ALERT</span>
+                <span id="jma-alert-badge-label">JMA EEW MONITOR</span>
               </div>
-              <div class="alert-card-title" id="jma-alert-headline">M6.5 Earthquake Warning</div>
-              <div class="alert-card-subhead" id="jma-alert-location">Offshore Fukushima</div>
-              <div class="alert-card-desc" id="jma-alert-subtext">Expect strong shaking. Tsunami advisory in effect for coastal zones.</div>
-              <button id="btn-view-alert-details" class="alert-card-btn">View Details</button>
+              <div class="alert-card-title" id="jma-alert-headline">Standby - No Active EEW</div>
+              <div class="alert-card-subhead" id="jma-alert-location">Wolfx JMA Stream &amp; USGS Feed</div>
+              <div class="alert-card-desc" id="jma-alert-subtext">Live telemetry standby. Active warnings appear here when triggered by real-time EEW broadcasts.</div>
+              <button id="btn-view-alert-details" class="alert-card-btn">View Telemetry Details</button>
             </div>
 
             <div class="recent-activity-panel">
-              <div class="panel-section-title">Recent Activity</div>
-              <div class="recent-activity-list">
-                <div class="activity-item">
-                  <span class="activity-dot amber"></span>
-                  <span class="activity-text">Typhoon Advisory (Kyoto)</span>
-                </div>
+              <div class="panel-section-title">Recent Seismic Feed</div>
+              <div id="recent-activity-list" class="recent-activity-list">
                 <div class="activity-item">
                   <span class="activity-dot green"></span>
-                  <span class="activity-text">All Clear (Tokyo)</span>
-                </div>
-                <div class="activity-item">
-                  <span class="activity-dot blue"></span>
-                  <span class="activity-text">Marine Gale Warning (Tohoku)</span>
+                  <span class="activity-text">Synchronizing live USGS seismic feed...</span>
                 </div>
               </div>
             </div>
 
             <div class="seasonal-forecasts-panel">
-              <div class="panel-section-title">Seasonal Forecasts</div>
+              <div class="panel-section-title">Seasonal Typhoon Index (1991-2020 Norms)</div>
               <div class="seasonal-bars-group">
                 <div class="seasonal-bar-col">
                   <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 42%; background-color: var(--color-optimal-green);" title="Spring Risk: 42%"></div>
+                    <div id="seasonal-bar-spr" class="seasonal-bar-fill" style="height: 10%; background-color: var(--color-optimal-green);" title="Spring Typhoon Index"></div>
                   </div>
                   <span class="seasonal-bar-label">SPR</span>
                 </div>
                 <div class="seasonal-bar-col">
                   <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 75%; background-color: var(--color-alert-amber);" title="Summer Risk: 75%"></div>
+                    <div id="seasonal-bar-sum" class="seasonal-bar-fill" style="height: 54%; background-color: var(--color-alert-amber);" title="Summer Typhoon Index"></div>
                   </div>
                   <span class="seasonal-bar-label">SUM</span>
                 </div>
                 <div class="seasonal-bar-col">
                   <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 90%; background-color: var(--color-critical-red);" title="Autumn Risk: 90%"></div>
+                    <div id="seasonal-bar-aut" class="seasonal-bar-fill" style="height: 57%; background-color: var(--color-critical-red);" title="Autumn Typhoon Index"></div>
                   </div>
                   <span class="seasonal-bar-label">AUT</span>
                 </div>
                 <div class="seasonal-bar-col">
                   <div class="seasonal-bar-track">
-                    <div class="seasonal-bar-fill" style="height: 52%; background-color: var(--color-ocean-blue);" title="Winter Risk: 52%"></div>
+                    <div id="seasonal-bar-win" class="seasonal-bar-fill" style="height: 3%; background-color: var(--color-ocean-blue);" title="Winter Typhoon Index"></div>
                   </div>
                   <span class="seasonal-bar-label">WIN</span>
                 </div>
@@ -371,11 +363,10 @@
             <div class="light-panel-card radar-feed-card" id="radar-feed-panel">
               <div class="light-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="pulse-indicator" style="background-color: var(--color-critical-red);"></span>
-                  <span class="light-panel-title">Live JMA Radar Feed</span>
+                  <span class="light-panel-title">Simulated Radar Sweep (Demo Visualization)</span>
                 </div>
                 <span style="font-family: var(--font-mono); font-size: 10px; color: var(--color-light-muted);">
-                  C-BAND DOPPLER · 5.3 GHz
+                  CLIENT CANVAS SIMULATION
                 </span>
               </div>
               <div class="radar-viewport-container">
@@ -808,8 +799,8 @@
     </div>
 
     <div class="footer-nav">
-      <a id="footer-custom-domain" href="https://japansafe.example.go.jp" class="footer-domain-badge">
-        japansafe.example.go.jp
+      <a href="https://github.com/Amanpreet6656/Japan-seismic-weather-dashboard" target="_blank" rel="noopener noreferrer" class="footer-link">
+        Source Repository
       </a>
       <a id="link-privacy-policy" href="#" class="footer-link">Privacy Policy</a>
       <a id="link-terms-conditions" href="#" class="footer-link">Terms & Conditions</a>

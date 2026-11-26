@@ -176,15 +176,17 @@ const MapEngine = (() => {
         fillOpacity: 0.65
       });
 
+      const safeEsc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const safeId = String(evt.id ?? '').replace(/[^a-zA-Z0-9_-]/g, '');
       const popupHtml = `
         <div style="font-family: var(--font-sans); min-width: 170px;">
           <div style="font-size: 11px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">
-            ${evt.title}
+            ${safeEsc(evt.title)}
           </div>
           <div style="font-family: var(--font-mono); font-size: 10px; color: #8E9BAE; margin-bottom: 6px;">
-            Dept: ${evt.depth} km | Mag: ${evt.mag} | ${evt.shindo.category}
+            Dept: ${safeEsc(evt.depth)} km | Mag: ${safeEsc(evt.mag)} | ${safeEsc(evt.shindo.category)}
           </div>
-          <button id="inspect-btn-${evt.id}" style="width: 100%; background: #1A1F26; border: 1px solid #3B82F6; color: #FFFFFF; font-size: 10px; font-weight: 600; padding: 4px 6px; cursor: pointer; text-transform: uppercase;">
+          <button id="inspect-btn-${safeId}" style="width: 100%; background: #1A1F26; border: 1px solid #3B82F6; color: #FFFFFF; font-size: 10px; font-weight: 600; padding: 4px 6px; cursor: pointer; text-transform: uppercase;">
             Inspect Forensic Details
           </button>
         </div>
@@ -193,7 +195,7 @@ const MapEngine = (() => {
       circle.bindPopup(popupHtml, { closeButton: false, offset: [0, -6] });
 
       circle.on('popupopen', () => {
-        const btn = document.getElementById(`inspect-btn-${evt.id}`);
+        const btn = document.getElementById(`inspect-btn-${safeId}`);
         if (btn) {
           btn.onclick = () => {
             if (typeof onMarkerSelectCallback === 'function') {

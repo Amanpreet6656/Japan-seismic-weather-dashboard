@@ -1,4 +1,14 @@
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function bootWhenReady(fn) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -339,21 +349,58 @@ bootWhenReady(() => {
 
   let lastEewAlert = null;
 
+  function updateSeasonalNormBars(prefKey = 'tokyo') {
+    const normals = API.CLIMATE_NORMALS[prefKey] || API.CLIMATE_NORMALS.tokyo;
+    if (!normals || !Array.isArray(normals.typhoonIndex)) return;
+    const avg = (arr) => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+    const spr = avg(normals.typhoonIndex.slice(2, 5));
+    const sum = avg(normals.typhoonIndex.slice(5, 8));
+    const aut = avg(normals.typhoonIndex.slice(8, 11));
+    const win = avg([normals.typhoonIndex[11], normals.typhoonIndex[0], normals.typhoonIndex[1]]);
+    const sets = [
+      ['seasonal-bar-spr', spr, 'Spring'],
+      ['seasonal-bar-sum', sum, 'Summer'],
+      ['seasonal-bar-aut', aut, 'Autumn'],
+      ['seasonal-bar-win', win, 'Winter']
+    ];
+    sets.forEach(([id, val, label]) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.height = `${Math.max(4, Math.min(100, val))}%`;
+        el.title = `${label} Historical Typhoon Index: ${val}/100`;
+      }
+    });
+  }
+
   function handleLiveEewAlert(alert) {
     lastEewAlert = alert;
     const banner = document.getElementById('hud-warning-banner');
-    if (alert.isWarn && !alert.isCancel) {
+    const card = document.getElementById('dashboard-jma-alert-card');
+    const badgeLabel = document.getElementById('jma-alert-badge-label');
+    const headline = document.getElementById('jma-alert-headline');
+    const loc = document.getElementById('jma-alert-location');
+    const subtext = document.getElementById('jma-alert-subtext');
+
+    if (alert && alert.isWarn && !alert.isCancel) {
       if (banner) {
         banner.style.display = 'block';
         banner.style.cursor = 'pointer';
         banner.title = 'Click to view Emergency Alert Card';
-        banner.innerHTML = `
-          <strong>JMA EARTHQUAKE EARLY WARNING:</strong> ${alert.hypocenter} (Estimated M${alert.magnitude} | Max Shindo ${alert.maxIntensity}) - Take Immediate Drop/Cover Shelter [Click for Emergency Details]
-        `;
+        banner.innerHTML = `<strong>JMA EARTHQUAKE EARLY WARNING:</strong> ${escapeHtml(alert.hypocenter)} (Estimated M${escapeHtml(alert.magnitude)} | Max Shindo ${escapeHtml(alert.maxIntensity)}) - Take Immediate Drop/Cover Shelter [Click for Emergency Details]`;
       }
+      if (card) card.classList.add('active-warning');
+      if (badgeLabel) badgeLabel.textContent = 'ACTIVE JMA EEW';
+      if (headline) headline.textContent = `M${alert.magnitude} Earthquake Early Warning`;
+      if (loc) loc.textContent = `${alert.hypocenter} (Max Shindo ${alert.maxIntensity})`;
+      if (subtext) subtext.textContent = `Issued ${alert.announcedTime || 'recently'}. Drop, cover, and hold on if strong shaking is expected.`;
       playAlertBeep();
     } else {
       if (banner) banner.style.display = 'none';
+      if (card) card.classList.remove('active-warning');
+      if (badgeLabel) badgeLabel.textContent = 'JMA EEW MONITOR';
+      if (headline) headline.textContent = 'Standby - No Active EEW';
+      if (loc) loc.textContent = 'Wolfx JMA Stream & USGS Feed';
+      if (subtext) subtext.textContent = 'Live telemetry standby. Active warnings appear here when triggered by real-time EEW broadcasts.';
     }
   }
 
@@ -393,12 +440,49 @@ bootWhenReady(() => {
       const events = await API.fetchUsgsSeismicEvents();
       AppState.seismicFeed = events;
       renderSeismicFeedList();
+      renderRecentSeismicActivity(events);
       MapEngine.updateEpicenters(events);
     } catch (err) {
       console.error('Seismic fetch routine encountered an unhandled exception:', err);
     } finally {
       if (refreshBtn) refreshBtn.classList.remove('loading');
     }
+  }
+
+  function renderRecentSeismicActivity(events) {
+    const list = document.getElementById('recent-activity-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!events || events.length === 0) {
+      const row = document.createElement('div');
+      row.className = 'activity-item';
+      row.innerHTML = '<span class="activity-dot green"></span><span class="activity-text">No M2.5+ events reported in feed.</span>';
+      list.appendChild(row);
+      return;
+    }
+
+    const isFallback = events.some(e => e.isFallback);
+    if (isFallback) {
+      const warnRow = document.createElement('div');
+      warnRow.className = 'activity-item';
+      warnRow.innerHTML = '<span class="activity-dot amber"></span><span class="activity-text">OFFLINE FALLBACK DATA (USGS feed unreachable)</span>';
+      list.appendChild(warnRow);
+    }
+
+    events.slice(0, 3).forEach(evt => {
+      const row = document.createElement('div');
+      row.className = 'activity-item';
+      const dotColor = evt.mag >= 5.0 ? 'red' : (evt.mag >= 4.0 ? 'amber' : 'green');
+      const dot = document.createElement('span');
+      dot.className = `activity-dot ${dotColor}`;
+      const txt = document.createElement('span');
+      txt.className = 'activity-text';
+      txt.textContent = `M${evt.mag.toFixed(1)} ${evt.place}`;
+      row.appendChild(dot);
+      row.appendChild(txt);
+      list.appendChild(row);
+    });
   }
 
   function renderSeismicFeedList() {
@@ -430,13 +514,13 @@ bootWhenReady(() => {
 
         card.innerHTML = `
           <div class="seismic-header">
-            <span class="mag-tag ${evt.tagClass}">M ${evt.mag.toFixed(1)}</span>
-            <span class="shindo-badge">${evt.shindo.category}</span>
+            <span class="mag-tag ${escapeHtml(evt.tagClass)}">M ${evt.mag.toFixed(1)}</span>
+            <span class="shindo-badge">${escapeHtml(evt.shindo.category)}</span>
           </div>
-          <div class="seismic-location" title="${evt.place}">${evt.place}</div>
+          <div class="seismic-location" title="${escapeHtml(evt.place)}">${escapeHtml(evt.place)}</div>
           <div class="seismic-details">
-            <span>Depth: ${evt.depth} km</span>
-            <span>${evt.distToTokyo} km from Tokyo</span>
+            <span>Depth: ${escapeHtml(evt.depth)} km</span>
+            <span>${escapeHtml(evt.distToTokyo)} km from Tokyo</span>
           </div>
         `;
 
@@ -480,7 +564,14 @@ bootWhenReady(() => {
     if (locNameEl) locNameEl.textContent = AppState.currentLocation.name;
     if (locCoordsEl) locCoordsEl.textContent = `${data.coords.lat.toFixed(3)}°N, ${data.coords.lon.toFixed(3)}°E`;
     if (tempEl) tempEl.textContent = `${data.temp}°C`;
-    if (descEl) descEl.textContent = `${data.conditionText} (Apparent: ${data.apparentTemp}°C)`;
+    if (descEl) {
+      const baseDesc = `${data.conditionText} (Apparent: ${data.apparentTemp}°C)`;
+      descEl.textContent = data.isFallback ? `${baseDesc} [Offline Fallback Baseline]` : baseDesc;
+    }
+
+    const prefKey = String(AppState.currentLocation.pref || AppState.currentLocation.name || 'tokyo')
+      .toLowerCase().replace(/[^a-z]/g, '');
+    updateSeasonalNormBars(API.CLIMATE_NORMALS[prefKey] ? prefKey : 'tokyo');
 
     MapEngine.updateWeatherBadge(data.temp, data.conditionText);
 
@@ -530,11 +621,11 @@ bootWhenReady(() => {
       const row = document.createElement('div');
       row.className = 'forecast-day-row';
       row.innerHTML = `
-        <span class="forecast-date">${day.label}</span>
-        <span class="forecast-condition" title="${day.condition}">${day.condition}</span>
+        <span class="forecast-date">${escapeHtml(day.label)}</span>
+        <span class="forecast-condition" title="${escapeHtml(day.condition)}">${escapeHtml(day.condition)}</span>
         <span class="forecast-temps">
-          <span class="hi">${day.tempMax}°</span>
-          <span class="lo">${day.tempMin}°</span>
+          <span class="hi">${escapeHtml(day.tempMax)}°</span>
+          <span class="lo">${escapeHtml(day.tempMin)}°</span>
         </span>
       `;
       container.appendChild(row);
@@ -829,7 +920,7 @@ bootWhenReady(() => {
 
         ctx.fillStyle = '#D97706';
         ctx.font = '9px var(--font-mono)';
-        ctx.fillText('TYPHOON T2408 (PROJ +12H)', cx + 50, cy - 82);
+        ctx.fillText('DEMO TRACK OVERLAY (SIMULATED)', cx + 35, cy - 82);
       }
 
       if (isRadarSweepActive) {
@@ -906,14 +997,6 @@ bootWhenReady(() => {
       });
     }
 
-    const domainLink = document.getElementById('footer-custom-domain');
-    if (domainLink) {
-      domainLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        openDomainConfigModal();
-      });
-    }
-
     const btnViewAlert = document.getElementById('btn-view-alert-details');
     if (btnViewAlert) {
       btnViewAlert.addEventListener('click', () => {
@@ -944,10 +1027,10 @@ bootWhenReady(() => {
     if (!backdrop || !title || !body) return;
 
     const alert = lastEewAlert || {
-      hypocenter: 'Suruga Bay / Nankai Trough Monitoring Node',
-      magnitude: 4.8,
-      maxIntensity: '3',
-      depth: 25,
+      hypocenter: 'No Active Warning Broadcast',
+      magnitude: '--',
+      maxIntensity: '0',
+      depth: '--',
       isWarn: false,
       announcedTime: new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo' }),
       title: 'JMA Seismological Telemetry Stream'
@@ -968,21 +1051,21 @@ bootWhenReady(() => {
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Monitored Hypocenter</div>
-          <div class="forensic-val">${alert.hypocenter}</div>
+          <div class="forensic-val">${escapeHtml(alert.hypocenter)}</div>
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Maximum Predicted Shindo</div>
           <div class="forensic-val" style="color: ${alert.isWarn ? '#E11D48' : '#10B981'};">
-            Shindo ${alert.maxIntensity}
+            Shindo ${escapeHtml(alert.maxIntensity)}
           </div>
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Estimated Magnitude</div>
-          <div class="forensic-val">M ${alert.magnitude}</div>
+          <div class="forensic-val">M ${escapeHtml(alert.magnitude)}</div>
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Focal Depth Estimate</div>
-          <div class="forensic-val">${alert.depth} km</div>
+          <div class="forensic-val">${escapeHtml(alert.depth)} km</div>
         </div>
       </div>
 
@@ -993,7 +1076,7 @@ bootWhenReady(() => {
 
       <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
         <button id="btn-simulate-eew" class="action-btn btn-sm" style="background-color: #E11D48; color: #FFFFFF; border-color: #E11D48;">
-          Simulate JMA EEW Alert Dispatch
+          Test Alert UI (Simulated Drill)
         </button>
         <button id="btn-reset-eew" class="action-btn btn-sm" style="background-color: var(--color-slate-panel); color: var(--color-pure-white);">
           Reset Normal Standby
@@ -1013,7 +1096,7 @@ bootWhenReady(() => {
         handleLiveEewAlert({
           isWarn: true,
           isCancel: false,
-          hypocenter: 'Off-Miyagi Coast (Tohoku Arc)',
+          hypocenter: 'DRILL TEST - Off-Miyagi Coast (Simulated)',
           magnitude: 6.4,
           maxIntensity: '5+',
           depth: 40,
@@ -1071,12 +1154,12 @@ bootWhenReady(() => {
       <div class="forensic-grid">
         <div class="forensic-stat">
           <div class="forensic-label">Hypocenter Location</div>
-          <div class="forensic-val" style="font-size: 13px;">${evt.place}</div>
+          <div class="forensic-val" style="font-size: 13px;">${escapeHtml(evt.place)}</div>
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Instrumental Shindo</div>
           <div class="forensic-val" style="color: ${evt.mag >= 5.0 ? '#E11D48' : '#10B981'};">
-            ${evt.shindo.category} (${evt.shindo.value})
+            ${escapeHtml(evt.shindo.category)} (${escapeHtml(evt.shindo.value)})
           </div>
         </div>
         <div class="forensic-stat">
@@ -1085,7 +1168,7 @@ bootWhenReady(() => {
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Focal Hypocenter Depth</div>
-          <div class="forensic-val">${evt.depth} km</div>
+          <div class="forensic-val">${escapeHtml(evt.depth)} km</div>
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Geodetic Coordinates</div>
@@ -1093,7 +1176,7 @@ bootWhenReady(() => {
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">Distance to Tokyo</div>
-          <div class="forensic-val">${evt.distToTokyo} km</div>
+          <div class="forensic-val">${escapeHtml(evt.distToTokyo)} km</div>
         </div>
         <div class="forensic-stat">
           <div class="forensic-label">P-Wave Theoretical Transit</div>
@@ -1107,11 +1190,11 @@ bootWhenReady(() => {
 
       <div class="forensic-directive-box">
         <strong style="display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em;">Civil Protection Operational Directive:</strong>
-        ${directiveText}
+        ${escapeHtml(directiveText)}
       </div>
 
       <div style="margin-top: 14px; font-family: var(--font-mono); font-size: 10px; color: var(--color-slate-muted);">
-        Recorded: ${evt.timestampStr} | USGS ID: ${evt.id} | JMA Instrumental Calibration: Midorikawa (1999) Attenuation
+        Recorded: ${escapeHtml(evt.timestampStr)} | USGS ID: ${escapeHtml(evt.id)} | JMA Instrumental Calibration: Midorikawa (1999) Attenuation
       </div>
     `;
 
@@ -1172,30 +1255,6 @@ bootWhenReady(() => {
         <p>
           Meteorological datasets are subject to Open Database License (ODbL) and respective open science public domain declarations.
         </p>
-      </div>
-    `;
-
-    backdrop.classList.add('active');
-  }
-
-  function openDomainConfigModal() {
-    const backdrop = document.getElementById('modal-backdrop');
-    const title = document.getElementById('modal-title-text');
-    const body = document.getElementById('modal-body-container');
-
-    if (!backdrop || !title || !body) return;
-
-    title.textContent = 'CUSTOM DOMAIN ROUTING RESERVATION';
-    body.innerHTML = `
-      <div style="font-size: 12px; line-height: 1.6; color: #E2E8F0;">
-        <p style="margin-bottom: 12px;">
-          This platform is configured for custom apex or sub-domain deployment (e.g. <code>japansafe.example.go.jp</code> or <code>insights.disaster-resilience.jp</code>).
-        </p>
-        <div style="background: #090B0E; border: 1px solid #2B333E; padding: 12px; border-radius: 2px; font-family: var(--font-mono); font-size: 11px;">
-          CNAME Target: proxy.japansafe.network<br>
-          A Record: 185.199.108.153<br>
-          SSL/TLS: TLS 1.3 Strict SNI Enforcement
-        </div>
       </div>
     `;
 

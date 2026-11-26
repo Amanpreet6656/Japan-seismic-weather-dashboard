@@ -119,12 +119,13 @@ const Watchlist = (() => {
       arcDashoffset = 60;
     }
 
+    const safeEsc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     card.innerHTML = `
       <div class="watch-card-header">
         <div class="watch-title-group">
           <span class="activity-dot ${dotClass}"></span>
-          <span class="watch-city-name">${city.name}</span>
-          ${kanji ? `<span class="watch-city-kanji">${kanji}</span>` : ''}
+          <span class="watch-city-name">${safeEsc(city.name)}</span>
+          ${kanji ? `<span class="watch-city-kanji">${safeEsc(kanji)}</span>` : ''}
           <svg class="watch-star-icon" viewBox="0 0 24 24" width="13" height="13" fill="#D97706">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
@@ -139,9 +140,9 @@ const Watchlist = (() => {
 
       <div class="watch-card-body">
         <div class="watch-temp-overview">
-          <div class="watch-temp-val">${tempStr}</div>
+          <div class="watch-temp-val">${safeEsc(tempStr)}</div>
           <div class="watch-risk-indicator" style="color: ${riskColor};">
-            ${conditionStr} · ${riskText}
+            ${safeEsc(conditionStr)} · ${safeEsc(riskText)}
           </div>
         </div>
 

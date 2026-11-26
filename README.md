@@ -2,7 +2,7 @@
 
 A lightweight, client-side web application for real-time earthquake tracking, local weather monitoring, and emergency preparedness in Japan.
 
-Built with standard HTML5, CSS3, and Vanilla JavaScript (ES2026). No frameworks, no bundlers, and no API keys required.
+Built with standard HTML5, CSS3, Vanilla JavaScript (ES6+), and Leaflet 1.9.4 (loaded via CDN). No frontend UI frameworks, no bundlers, and no API keys required.
 
 ---
 
@@ -29,7 +29,7 @@ The application is structured as a client-side single-page application divided i
 |  VIEW 1: GLOBAL DASHBOARD                                                                         |
 |  +-----------------------+---------------------------------------+------------------------------+ |
 |  | Column 1 (360px)      | Column 2 (Flexible)                   | Column 3 (380px)             | |
-|  | Real-Time USGS feed   | Leaflet map (CARTO Positron Light)    | Local weather (Open-Meteo)   | |
+|  | Real-Time USGS feed   | Leaflet map (ArcGIS Dark Gray Base)    | Local weather (Open-Meteo)   | |
 |  | JMA Shindo estimates  | Subduction trench polyline overlays   | WBGT heat stress meter       | |
 |  | Magnitude filtering   | Shockwave circles on epicenters       | 7-day forecast cards         | |
 |  | Epicentral distance   | Weather overlay badge                 | Active JMA warning cards     | |
@@ -38,7 +38,7 @@ The application is structured as a client-side single-page application divided i
 |  VIEW 2: DISASTER TRACK & PREP                                                                    |
 |  +---------------------------------------------------------------------------------------------+  |
 |  | Sub-tabs: Seismic Activity | Typhoon Radar | Evacuation Maps                                |  |
-|  | - Live 360-degree radar sweep canvas with range rings and reflectivity echoes               |  |
+|  | - Simulated 360-degree radar sweep canvas (demo visualization) with range rings                |  |
 |  | - Quick triage checklist (furniture bracing, go-bag essentials)                             |  |
 |  | - Tokyo BCP 72-Hour Survival Kit with LocalStorage persistence and print stylesheet         |  |
 |  | - Expandable accordions for the Cabinet Office 5-stage evacuation hierarchy                 |  |
@@ -60,7 +60,7 @@ The application is structured as a client-side single-page application divided i
 |  +---------------------------------------------------------------------------------------------+  |
 |                                                                                                   |
 +---------------------------------------------------------------------------------------------------+
-|  FOOTER: Institutional Citations | Custom Domain Reservation | Privacy Policy | Terms of Service  |
+|  FOOTER: Institutional Citations | Source Repository | Privacy Policy | Terms of Service             |
 +---------------------------------------------------------------------------------------------------+
 ```
 
@@ -135,23 +135,17 @@ The checklist saves completion status directly to browser `LocalStorage`, suppor
 
 ## 4. Technical Details
 
-### 4.1 CARTO Positron Light Map Tile Fix
-Standard Leaflet implementations often default to `tile.openstreetmap.org`. However, OpenStreetMap public tile servers enforce strict user-agent and referrer policies that routinely return HTTP 403 Forbidden errors when loaded from localhost or unauthenticated browser sessions.
+### 4.1 Map Basemap & OpenStreetMap Fallback
+Standard Leaflet setups often default to `tile.openstreetmap.org`, which can throttle or block local/unauthenticated requests. JSWI defaults to Esri ArcGIS World Dark Gray Base tiles and falls back to OpenStreetMap tiles with dark CSS filtering if a tile request fails:
 
-To solve this, JSWI uses CARTO Positron Light tiles:
 ```javascript
-// Hardcoding CARTO Positron light tiles here to bypass OSM's strict 403 referrer blocks on localhost.
-// CARTO Positron supports unauthenticated, open access across subdomains ['a', 'b', 'c', 'd']
-// and maintains high-contrast, clean cartography regardless of the global UI theme.
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  subdomains: ['a', 'b', 'c', 'd'],
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  maxZoom: 19
+const basemap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+  maxZoom: 16
 }).addTo(mapInstance);
 ```
 
-**Why the map stays in light mode:**
-Dark mode map tiles usually require paid commercial API keys. Attempting to invert light tiles with CSS filters (`filter: invert(...)`) degrades text readability and reverses ocean bathymetry into land colors. JSWI hardcodes the map layer to light mode (`.leaflet-tile { filter: none !important; }`), ensuring that geographic coastlines and text remain clear whether the platform UI is set to Dark Mode or Light Mode.
+Notice that View 2's radar canvas is a **client-side Canvas 2D demonstration visualization** (clearly labeled in the UI as simulated), while live telemetry comes from USGS, Open-Meteo, and Wolfx.
 
 ### 4.2 Decoupled Event Handling and View Routing
 The user interface avoids monolithic initialization scripts that freeze if an external API is slow or offline:
@@ -274,4 +268,4 @@ Open `http://localhost:8080` in any modern browser (Chrome, Firefox, Safari, Edg
 4. **Ministry of the Environment of Japan (MOE / 環境省):** Heat Illness Prevention Information System, Wet Bulb Globe Temperature (WBGT) calculation methodology.
 5. **Tokyo Metropolitan Government (東京都総務局総合防災部):** *Disaster Preparedness Tokyo (東京防災 - Tokyo Bousai)*, Business Continuity Planning (BCP) 72-Hour Survival Framework.
 6. **Open-Meteo:** Numerical weather prediction API, incorporating JMA Meso-Scale and Local Forecast models.
-7. **OpenStreetMap Foundation & CARTO:** Nominatim geocoding service and CARTO Positron Light basemap tiles.
+7. **OpenStreetMap Foundation & Esri ArcGIS:** Nominatim geocoding service, ArcGIS World Dark Gray basemap, and OpenStreetMap fallback tiles.

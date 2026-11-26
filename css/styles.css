@@ -888,9 +888,15 @@ main.app-viewport {
 
 .prep-two-column-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+}
+
+.prep-left-column,
+.prep-right-column {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Card Panels - Dynamic Dark/Light via CSS Variables */
@@ -900,6 +906,8 @@ main.app-viewport {
   border-radius: var(--radius-xs);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .light-panel-header {
@@ -909,6 +917,8 @@ main.app-viewport {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .light-panel-title {
@@ -2593,23 +2603,124 @@ html[data-theme="light"] .footer-domain-badge {
 }
 
 @media (max-width: 960px) {
+  .app-header {
+    height: auto;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .brand-section {
+    min-width: 0;
+    flex: 1 1 200px;
+  }
+  .system-telemetry-status {
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 100%;
+  }
+  .view-nav {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .nav-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
     overflow: visible;
   }
   .col-panel {
+    min-width: 0;
+    max-width: 100%;
     border-right: none;
+    border-left: none;
     border-bottom: 1px solid var(--color-slate-border);
     max-height: 480px;
   }
+  .col-panel:last-child {
+    border-left: none;
+  }
   .map-viewport {
+    min-width: 0;
+    max-width: 100%;
     height: 450px;
   }
   .prep-two-column-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prep-sub-nav,
+  .radar-controls-bar,
+  .view-header-strip,
+  .prefecture-selector-bar,
+  .watchlist-toolbar,
+  .chart-header,
+  .hero-chart-header-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .accordion-content,
+  .svg-chart-container,
+  .hero-svg-chart-container {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .radar-canvas {
+    width: 100%;
+    max-width: 100%;
   }
   .feasibility-grid {
     grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .prep-container,
+  .planner-container,
+  .watchlist-container {
+    padding: 16px 12px;
+  }
+  .light-panel-body {
+    padding: 14px 12px;
+  }
+  .radar-canvas {
+    height: 220px;
+  }
+  .watchlist-search-form {
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .watchlist-cards-grid,
+  .charts-matrix-grid,
+  .forensic-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .feasibility-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .pref-dropdown-group {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .pref-select {
+    width: 100%;
+    max-width: 100%;
+  }
+  .feasibility-matrix-card > div:first-child {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .app-footer {
+    padding: 12px 14px;
+  }
+  .footer-citations {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
